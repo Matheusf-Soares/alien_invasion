@@ -37,6 +37,7 @@ class AlienInvasion:
             self._check_events()
             self.ship.update()
             self._update_bullets()
+            self._update_aliens()
             # Redesenha a tela durante cada passagem pelo loop
             self._update_screen()
             self.clock.tick(100)
@@ -84,11 +85,49 @@ class AlienInvasion:
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
 
+    def _update_aliens(self):
+        """Verifica se a frota está na borda e, em seguida, atualiza as posições"""
+        self._check_fleet_edges()
+        self.aliens.update()
+
     def _create_fleet(self):
         """Cria a frota de alienígenas"""
-        # Cria um alienígena
+        # Cria um alienígena e continua adicionando alienígenas
+        # até que não haja mais espaço
+        # O distanciamento entre alienígenas é a largura de um alienígena
         alien = Alien(self)
-        self.aliens.add(alien)
+        alien_width, alien_height = alien.rect.size
+
+        current_x, current_y = alien_width, alien_height
+        while current_y < (self.settings.screen_height - 3 * alien_height):
+            while current_x < (self.settings.screen_width - 2 * alien_width):
+                self._create_alien(current_x, current_y)
+                current_x += 2 * alien_width
+
+            # Termina uma fileira; redefine o valor de x, e incrementa o valor de y 
+            current_x = alien_width
+            current_y += 2 * alien_height
+
+    def _create_alien(self, x_position, y_position):
+        """Cria um alienígena e o posiciona na fileira"""
+        new_alien = Alien(self)
+        new_alien.x = x_position
+        new_alien.rect.x = x_position
+        new_alien.rect.y = y_position
+        self.aliens.add(new_alien)
+
+    def _check_fleet_edges(self):
+        """Responde apropriadamente se algum alienígena alcançou uma borda"""
+        for alien in self.aliens.sprites():
+            if alien.check_edges():
+                self._change_fleet_direction()
+                break
+    
+    def _change_fleet_direction(self):
+        """Faz toda a frota descer e mudar de direção"""
+        for alien in self.aliens.sprites():
+            alien.rect.y += self.settings.fleet_drop_speed
+        self.settings.fleet_direction *= -1
 
     def _update_screen(self):
         self.screen.fill(self.settings.bg_color)
