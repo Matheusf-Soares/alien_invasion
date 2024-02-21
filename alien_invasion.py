@@ -81,6 +81,7 @@ class AlienInvasion:
             self.stats.reset_stats()
             self.sb.prep_score()
             self.sb.prep_level()
+            self.sb.prep_ships()
             self.game_active = True
             
             # Descarta quaisquer projéteis e alienígenas restantes
@@ -204,8 +205,9 @@ class AlienInvasion:
     def _ship_hit(self):
         """Responde à nave sendo abatida por um alien"""
         if self.stats.ships_left > 0:
-        # Decrementa ships_left
+            # Decrementa ships_left
             self.stats.ships_left -= 1
+            self.sb.prep_ships()
 
             # Descarta quaisquer projéteis e alienígenas restantes
             self.bullets.empty()
