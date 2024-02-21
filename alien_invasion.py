@@ -5,6 +5,7 @@ import pygame
 
 from settings import Settings
 from game_stats import GameStats
+from scoreboard import Scoreboard
 from button import Button
 from ship import Ship
 from bullet import Bullet
@@ -27,8 +28,9 @@ class AlienInvasion:
 
         pygame.display.set_caption("Alien Invasion")
 
-        # Cria uma instância para armazenar estatísticas do jogo
+        # Cria uma instância para armazenar estatísticas do jogo e cria um scoreboard
         self.stats = GameStats(self)
+        self.sb = Scoreboard(self)
 
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
@@ -70,8 +72,27 @@ class AlienInvasion:
 
     def _check_play_button(self, mouse_pos):
         """Inicia um jogo novo quando o jogador clica em Play"""
-        if self.play_button.rect.collidepoint(mouse_pos):
+        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+        if button_clicked and not self.game_active:
+            # Redefine as configurações do jogo
+            self.settings.initialize_dynamic_settings()
+
+            # Redefine as estatísticas do jogo
+            self.stats.reset_stats()
+            self.sb.prep_score()
+            self.sb.prep_level()
             self.game_active = True
+            
+            # Descarta quaisquer projéteis e alienígenas restantes
+            self.bullets.empty()
+            self.aliens.empty()
+
+            # Cria uma frota nova e centraliza a nave
+            self._create_fleet()
+            self.ship.center_ship()
+
+            # Oculta o cursor do mouse
+            pygame.mouse.set_visible(False)
 
     def _check_keydown_events(self, event):
         """Responde a teclas pressionadas"""
@@ -113,10 +134,21 @@ class AlienInvasion:
             self.bullets, self.aliens, True, True
         )
 
+        if collisions:
+            for aliens in collisions.values():
+                self.stats.score += self.settings.alien_points * len(aliens)
+            self.sb.prep_score()
+            self.sb.check_high_score()
+
         if not self.aliens:
             # Destrói os projéteis existentes e cria uma frota nova
             self.bullets.empty()
             self._create_fleet()
+            self.settings.increase_speed()
+            
+            # Aumenta o nível
+            self.stats.level += 1
+            self.sb.prep_level()
 
     def _update_aliens(self):
         """Verifica se a frota está na borda e, em seguida, atualiza as posições"""
@@ -187,6 +219,7 @@ class AlienInvasion:
             sleep(0.5)
         else:
             self.game_active = False
+            pygame.mouse.set_visible(True)
 
     def _check_aliens_bottom(self):
         """Verifica se algum alienígena chegou à parte inferior da tela"""
@@ -204,6 +237,9 @@ class AlienInvasion:
 
         self.ship.blitme()
         self.aliens.draw(self.screen)
+
+        # Desenha as informações da pontuação
+        self.sb.show_score()
 
         # Desenha o botão Play se o jogo estiver inativo
         if not self.game_active:
